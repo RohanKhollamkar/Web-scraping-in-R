@@ -1,0 +1,161 @@
+---
+title: "Amazon Product Details"
+author: "Rohan Khollamkar"
+date: "17 April 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Libraries**
+```{r libraries, echo = T}
+library(rvest)
+library(dplyr)
+library(stringr)
+```
+
+**Go to product page**
+```{r product_page, echo = T}
+HtmlLink <- "https://www.amazon.com/GS65-Stealth-i7-8750H-Notebook-Computer/dp/B07MQ73SPZ/ref=sr_1_4?keywords=2080+laptops+2tb+ssd&qid=1555596596&s=electronics&sr=1-4"
+txtPage <- read_html(HtmlLink)
+print(txtPage)
+```
+
+**Page Title**
+```{r Page_title, echo = T}
+page.title <- html_node(txtPage,'title')
+page.title <- html_text(page.title)
+print(page.title)
+```
+
+**Generic Cleaning Function**
+```{r text_cleaning_function, echo =T}
+getCleanText <- function(vcsAllText){
+    #print(vcsAllText)
+    vcsAllText <- str_replace_all(vcsAllText,"\n","")
+    #print(vcsAllText)
+    vcsAllText <- trimws(vcsAllText, which = c("both"))
+    #print(vcsAllText)
+    return(vcsAllText)
+}
+```
+
+**Product Title**
+```{r product_title,echo=T}
+Prodtitle <- html_node(txtPage,"#productTitle")
+Prodtitle <- html_text(Prodtitle)
+Prodtitle <- getCleanText(Prodtitle)
+Prodtitle <- str_sub(Prodtitle,1,53)  ## We want name only and not a configuration
+print(Prodtitle)
+```
+
+**product Price**
+```{r product_price, echo = T}
+ProdPrice <- txtPage%>%
+             html_node("#priceblock_ourprice")%>%
+             html_text()
+ProdPrice <- getCleanText(ProdPrice)
+ProdPrice <- strsplit(ProdPrice,"$",fixed = T)
+ProdPrice <- unlist(ProdPrice)
+ProdPrice <- getCleanText(ProdPrice)
+ProdPrice <- ProdPrice[2]
+print(ProdPrice)
+```
+
+**Product size and prices**
+```{r variation_size_prices, echo=T}
+ProdSize <- txtPage%>%
+            html_node("#variation_size_name")%>%
+            html_text()
+ProdSize <- getCleanText(ProdSize)
+ProdSize <- str_replace(gsub("\\s+"," ",ProdSize),"B","b")
+ProdSize <- str_split(ProdSize ,"/")
+ProdSize <- unlist(ProdSize)
+ProdSize <- ProdSize[grepl(ProdSize,pattern = "GB+")]
+ProdSize <- str_split(ProdSize,";")
+ProdSize <- unlist(ProdSize)
+ProdSize <- ProdSize[grepl(ProdSize,pattern = "GB+")]
+
+
+ProdSize[1] <- gsub(x = ProdSize[1],pattern = "Size",replacement = "")
+ProdSize <- trimws(ProdSize)
+ProdPrices <- strsplit(ProdSize,split = "$",fixed = T)
+ProdPrices <- unlist(ProdPrices)
+ProdSize <- ProdPrices[c(1,3,5,7,9,11,13)]
+ProdSize <- str_remove_all(ProdSize,"[[:punct:]]")
+ProdSize <- trimws(ProdSize)
+ProdPrices <- ProdPrices[c(2,4,6,8,10,12,14)]
+
+sprintf("Product Sizes:")
+print(ProdSize)
+print("Product Prices:")
+print(ProdPrices)
+
+```
+
+**Product description**
+```{r product_description, echo = T}
+ProdDesc <- txtPage%>%
+            html_node("ul.a-spacing-none")%>%
+            html_text()
+ProdDesc <- getCleanText(ProdDesc)
+ProdDesc <- gsub("\\t+", " ",ProdDesc)
+ProdDesc <- strsplit(ProdDesc,"  ",fixed = T)
+ProdDesc <- unlist(ProdDesc)
+
+ProdDesc <- ProdDesc[22:26]
+ProdDesc <- trimws(ProdDesc)
+
+ProdDesc[5] <- strsplit(ProdDesc[5],"(",fixed = TRUE)
+ProdDesc <- unlist(ProdDesc)
+ProdDesc <- trimws(ProdDesc[1:5])
+print(paste0(ProdDesc))
+```
+
+**Final Details of Product**
+```{r dataframe, echo = T}
+final = data.frame(Variants = ProdSize, Price = ProdPrices, stringsAsFactors = F)
+print(final)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
